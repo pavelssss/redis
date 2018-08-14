@@ -1697,6 +1697,103 @@ RedisModuleString *RM_ListPop(RedisModuleKey *key, int where) {
     return decoded;
 }
 
+size_t RM_ListLength(RedisModuleKey *key){
+
+    if (key->value == NULL ||
+        key->value->type != OBJ_LIST) return 0;
+
+    if(key->value->encoding == OBJ_ENCODING_QUICKLIST){
+        return listTypeLength(key->value);
+    }else{
+        serverPanic("List encoding is not QUICKLIST!");
+    }
+}
+
+int RM_ListInsertBefore(RedisModuleKey *key, RedisModuleString *ele, long start){
+
+    if (!(key->mode & REDISMODULE_WRITE)) return REDISMODULE_ERR;
+
+    if (key->value && key->value->type != OBJ_LIST) return REDISMODULE_ERR;
+
+    if (key->value == NULL) moduleCreateEmptyKey(key,REDISMODULE_KEYTYPE_LIST);
+
+    if (key->value->encoding == OBJ_ENCODING_QUICKLIST) {
+
+        long double value;
+
+        if (string2fld(ele->ptr, sdslen(ele->ptr), &value) == 0) return REDISMODULE_ERR;
+
+        long llen = listTypeLength(key->value);
+
+        if (llen == 0){
+            // insert item into list and return
+            listTypePush(key->value, ele, QUICKLIST_HEAD);
+            return REDISMODULE_OK;
+        }
+
+        long rangelen = llen;
+        //serverLog(LL_NOTICE,"ListInsertBefore: %Lf", value);
+
+        char found = 0;
+        char err = 0;
+
+        listTypeIterator *iter = listTypeInitIterator(key->value, start, LIST_TAIL);
+
+        while(rangelen--) {
+            listTypeEntry entry;
+            listTypeNext(iter, &entry);
+            quicklistEntry *qe = &entry.entry;
+
+            //serverLog(LL_NOTICE,"ListInsertBefore: cycle %s, size: %d", qe->value, qe->sz);
+
+
+            if (qe->value) {
+                long double itemValue;
+
+
+                if(string2fld((const char *)qe->value, (size_t)qe->sz, &itemValue) == 0){
+                    err = 1;
+                    //serverLog(LL_NOTICE,"ListInsertBefore: error string2fld");
+                    break;
+                }else if(value == itemValue){
+                    // replace old value with new one
+                    quicklistReplaceEntry(qe, ele->ptr, sdslen(ele->ptr));
+                    found = 1;
+                    //serverLog(LL_NOTICE,"ListInsertBefore: replace, value = %Lf", itemValue);
+                    break;
+                }else if(value < itemValue ){
+                    //insert new item before current one
+                    listTypeInsert(&entry, ele, LIST_HEAD);
+                    found = 1;
+                    //serverLog(LL_NOTICE,"ListInsertBefore: insert before, value = %Lf", itemValue);
+                    break;
+                }
+                //addReplyBulkCBuffer(c,qe->value,qe->sz);
+            } else {
+                //serverLog(LL_NOTICE,"ListInsertBefore: err - not value, ");
+                err = 1;
+                break;
+                //addReplyBulkLongLong(c,qe->longval);
+            }
+        }
+        listTypeReleaseIterator(iter);
+
+        if(err){
+            return REDISMODULE_ERR;
+        }else{
+            if (found == 0){
+                // insert node to tail of list
+                listTypePush(key->value, ele, QUICKLIST_TAIL);
+            }
+            return REDISMODULE_OK;
+        }
+    } else {
+        serverPanic("List encoding is not QUICKLIST!");
+    }
+
+    return REDISMODULE_ERR;
+}
+
 /* --------------------------------------------------------------------------
  * Key API for Sorted Set type
  * -------------------------------------------------------------------------- */
@@ -4599,6 +4696,8 @@ void moduleRegisterCoreAPI(void) {
     REGISTER_API(KeyType);
     REGISTER_API(ValueLength);
     REGISTER_API(ListPush);
+    REGISTER_API(ListLength);
+    REGISTER_API(ListInsertBefore);
     REGISTER_API(ListPop);
     REGISTER_API(StringToLongLong);
     REGISTER_API(StringToDouble);

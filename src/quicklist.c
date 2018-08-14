@@ -679,6 +679,20 @@ int quicklistReplaceAtIndex(quicklist *quicklist, long index, void *data,
     }
 }
 
+/* Replace quicklist given entry by 'data' with length 'sz'.
+ *
+ */
+void quicklistReplaceEntry(quicklistEntry *entry, void *data, int sz) {
+
+    quicklistEntry qe = *entry;
+
+    qe.node->zl = ziplistDelete(qe.node->zl, &qe.zi);
+    qe.node->zl = ziplistInsert(qe.node->zl, qe.zi, data, sz);
+    quicklistNodeUpdateSz(qe.node);
+    quicklistCompress(qe.quicklist, qe.node);
+
+}
+
 /* Given two nodes, try to merge their ziplists.
  *
  * This helps us not have a quicklist with 3 element ziplists if

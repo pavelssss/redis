@@ -422,6 +422,31 @@ int string2l(const char *s, size_t slen, long *lval) {
     return 1;
 }
 
+
+
+/* Convert a first chars in string into a double. Returns 1 if the string could be parsed
+ * into a (non-overflowing) double, 0 otherwise. The value will be set to
+ * the parsed value when appropriate.
+ * */
+int string2fld(const char *s, size_t slen, long double *dp) {
+
+    char clean[32];
+    size_t i = 0;
+    char comma = 0;
+    for (; i<slen && i< 32; i++) {
+        const char c = *(s + i);
+        if ((c >= 0x30 && c < 0x40) || (i == 0 && c == 0x2d) || (comma == 0 && c == 0x2e)) {
+            clean[i] = c;
+            if (comma == 0 && c == 0x2e) {
+                comma = 1;
+            }
+        } else {
+            break;
+        }
+    }
+    return string2ld((const char *)&clean, i, dp);
+}
+
 /* Convert a string into a double. Returns 1 if the string could be parsed
  * into a (non-overflowing) double, 0 otherwise. The value will be set to
  * the parsed value when appropriate.

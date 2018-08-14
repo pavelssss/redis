@@ -189,6 +189,8 @@ void REDISMODULE_API_FUNC(RedisModule_CloseKey)(RedisModuleKey *kp);
 int REDISMODULE_API_FUNC(RedisModule_KeyType)(RedisModuleKey *kp);
 size_t REDISMODULE_API_FUNC(RedisModule_ValueLength)(RedisModuleKey *kp);
 int REDISMODULE_API_FUNC(RedisModule_ListPush)(RedisModuleKey *kp, int where, RedisModuleString *ele);
+int REDISMODULE_API_FUNC(RedisModule_ListInsertBefore)(RedisModuleKey *key, RedisModuleString *ele, long start);
+size_t REDISMODULE_API_FUNC(RedisModule_ListLength)(RedisModuleKey *kp);
 RedisModuleString *REDISMODULE_API_FUNC(RedisModule_ListPop)(RedisModuleKey *key, int where);
 RedisModuleCallReply *REDISMODULE_API_FUNC(RedisModule_Call)(RedisModuleCtx *ctx, const char *cmdname, const char *fmt, ...);
 const char *REDISMODULE_API_FUNC(RedisModule_CallReplyProto)(RedisModuleCallReply *reply, size_t *len);
@@ -337,6 +339,8 @@ static int RedisModule_Init(RedisModuleCtx *ctx, const char *name, int ver, int 
     REDISMODULE_GET_API(KeyType);
     REDISMODULE_GET_API(ValueLength);
     REDISMODULE_GET_API(ListPush);
+    REDISMODULE_GET_API(ListInsertBefore);
+    REDISMODULE_GET_API(ListLength);
     REDISMODULE_GET_API(ListPop);
     REDISMODULE_GET_API(StringToLongLong);
     REDISMODULE_GET_API(StringToDouble);
