@@ -1708,8 +1708,17 @@ size_t RM_ListLength(RedisModuleKey *key){
         serverPanic("List encoding is not QUICKLIST!");
     }
 }
+/**
+ *
+ * @param key
+ * @param ele
+ * @param dir - direction, 0 - LESS, 1 - MORE
+ * @param mode - operation mode. 0 - update if found, 1 - delete if found
+ * @param start
+ * @return
+ */
 
-int RM_ListInsertBefore(RedisModuleKey *key, RedisModuleString *ele, long start){
+int RM_ListInsertBefore(RedisModuleKey *key, RedisModuleString *ele, char dir, char mode, long start){
 
     if (!(key->mode & REDISMODULE_WRITE)) return REDISMODULE_ERR;
 
@@ -1721,7 +1730,10 @@ int RM_ListInsertBefore(RedisModuleKey *key, RedisModuleString *ele, long start)
 
         long double value;
 
-        if (string2fld(ele->ptr, sdslen(ele->ptr), &value) == 0) return REDISMODULE_ERR;
+        if (string2fld(ele->ptr, sdslen(ele->ptr), &value) == 0) {
+            //addReplyError(c, "Unable to parse new entry number value");
+            return REDISMODULE_ERR;
+        }
 
         long llen = listTypeLength(key->value);
 
@@ -1732,10 +1744,11 @@ int RM_ListInsertBefore(RedisModuleKey *key, RedisModuleString *ele, long start)
         }
 
         long rangelen = llen;
-        //serverLog(LL_NOTICE,"ListInsertBefore: %Lf", value);
 
         char found = 0;
         char err = 0;
+
+        long long index = 0;
 
         listTypeIterator *iter = listTypeInitIterator(key->value, start, LIST_TAIL);
 
@@ -1744,36 +1757,38 @@ int RM_ListInsertBefore(RedisModuleKey *key, RedisModuleString *ele, long start)
             listTypeNext(iter, &entry);
             quicklistEntry *qe = &entry.entry;
 
-            //serverLog(LL_NOTICE,"ListInsertBefore: cycle %s, size: %d", qe->value, qe->sz);
-
-
             if (qe->value) {
                 long double itemValue;
 
 
                 if(string2fld((const char *)qe->value, (size_t)qe->sz, &itemValue) == 0){
                     err = 1;
+                    //addReplyError(c, "Unable to parse list entry number value");
                     //serverLog(LL_NOTICE,"ListInsertBefore: error string2fld");
                     break;
                 }else if(value == itemValue){
                     // replace old value with new one
-                    quicklistReplaceEntry(qe, ele->ptr, sdslen(ele->ptr));
+                    if(mode == 0) {
+                        quicklistReplaceEntry(qe, ele->ptr, sdslen(ele->ptr));
+                        //serverLog(LL_NOTICE,"ListInsertBefore: replace item");
+                    }else{
+                        listTypeDelete(iter, &entry);
+                        //serverLog(LL_NOTICE,"ListInsertBefore: remove item");
+                    }
                     found = 1;
-                    //serverLog(LL_NOTICE,"ListInsertBefore: replace, value = %Lf", itemValue);
                     break;
-                }else if(value < itemValue ){
+                }else if((dir == 0 && value < itemValue ) || (dir != 0 && value > itemValue)){
                     //insert new item before current one
                     listTypeInsert(&entry, ele, LIST_HEAD);
                     found = 1;
-                    //serverLog(LL_NOTICE,"ListInsertBefore: insert before, value = %Lf", itemValue);
                     break;
+                } else {
+                    index++;
                 }
-                //addReplyBulkCBuffer(c,qe->value,qe->sz);
             } else {
-                //serverLog(LL_NOTICE,"ListInsertBefore: err - not value, ");
                 err = 1;
+                //addReplyError(c, "List entry must be a string");
                 break;
-                //addReplyBulkLongLong(c,qe->longval);
             }
         }
         listTypeReleaseIterator(iter);
@@ -1785,11 +1800,13 @@ int RM_ListInsertBefore(RedisModuleKey *key, RedisModuleString *ele, long start)
                 // insert node to tail of list
                 listTypePush(key->value, ele, QUICKLIST_TAIL);
             }
+            //addReplyLongLong(index);
             return REDISMODULE_OK;
         }
     } else {
         serverPanic("List encoding is not QUICKLIST!");
     }
+    //addReplyError(c, "Unknown error");
 
     return REDISMODULE_ERR;
 }

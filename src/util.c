@@ -435,7 +435,7 @@ int string2fld(const char *s, size_t slen, long double *dp) {
     char comma = 0;
     for (; i<slen && i< 32; i++) {
         const char c = *(s + i);
-        if ((c >= 0x30 && c < 0x40) || (i == 0 && c == 0x2d) || (comma == 0 && c == 0x2e)) {
+        if ((c >= 0x30 && c < 0x3a) || (i == 0 && c == 0x2d) || (comma == 0 && c == 0x2e)) {
             clean[i] = c;
             if (comma == 0 && c == 0x2e) {
                 comma = 1;

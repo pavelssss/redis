@@ -189,7 +189,7 @@ void REDISMODULE_API_FUNC(RedisModule_CloseKey)(RedisModuleKey *kp);
 int REDISMODULE_API_FUNC(RedisModule_KeyType)(RedisModuleKey *kp);
 size_t REDISMODULE_API_FUNC(RedisModule_ValueLength)(RedisModuleKey *kp);
 int REDISMODULE_API_FUNC(RedisModule_ListPush)(RedisModuleKey *kp, int where, RedisModuleString *ele);
-int REDISMODULE_API_FUNC(RedisModule_ListInsertBefore)(RedisModuleKey *key, RedisModuleString *ele, long start);
+int REDISMODULE_API_FUNC(RedisModule_ListInsertBefore)(RedisModuleKey *key, RedisModuleString *ele, char dir, char mode, long start);
 size_t REDISMODULE_API_FUNC(RedisModule_ListLength)(RedisModuleKey *kp);
 RedisModuleString *REDISMODULE_API_FUNC(RedisModule_ListPop)(RedisModuleKey *key, int where);
 RedisModuleCallReply *REDISMODULE_API_FUNC(RedisModule_Call)(RedisModuleCtx *ctx, const char *cmdname, const char *fmt, ...);
